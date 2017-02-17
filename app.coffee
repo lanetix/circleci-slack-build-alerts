@@ -50,43 +50,41 @@ app.get '/', (req, res) ->
   res.send 200, 'OK'
 
 maxVal = requireEnv 'NUM_OF_ALERTS'
-for alertNum in [1..maxVal]
+alerts = [1..maxVal]
+
+for alertNum in alerts
   app.post '/', (req, res) ->
     return res.send 400, 'No payload' unless req.body.payload?
-    {build_url, branch, status} = req.body.payload
-
-    console.log('//////// NUM_OF_ALERTS', maxVal)
+    {build_url, reponame, branch, status} = req.body.payload
 
     branchEnvVar = (alertNum) ->
       "GIT_BRANCH_#{alertNum}"
-    console.log('////////// branchEnvVar ', branchEnvVar(alertNum))
     if branch != requireEnv branchEnvVar(alertNum)
-      console.log('//////// here 1')
       return res.send 200, 'Ignored (wrong git branch)'
+
+    repoEnvVar = (alertNum) ->
+      "REPO_#{alertNum}"
+    if reponame != requireEnv repoEnvVar(alertNum)
+      return res.send 200, 'Ignored (wrong repo)'
 
     slackChannelEnvVar = (alertNum) ->
       "SLACK_CHANNEL_#{alertNum}"
-    console.log('//////////////// slackChannelEnvVar ', slackChannelEnvVar(alertNum))
     payload =
       channel: requireEnv slackChannelEnvVar(alertNum)
       username: 'CircleCI build status'
     if status == 'failed'
-      console.log('//////// here 2')
       payload.icon_emoji = ':red_circle:'
-      payload.text = "@channel #{ branch } build FAILED for #{ build_url }! <#{ build_url }|See details...>"
+      payload.text = "@channel #{ branch } build FAILED for #{ reponame }! <#{ build_url }|See details...>"
       #payload.text = "@channel #{ branch } build FAILED! <#{ build_url }|See details...>\nhttp://i.imgur.com/TVVFOhS.gif"
     else if status == 'fixed'
-      console.log('//////// here 3')
       payload.icon_emoji = ':white_check_mark:'
-      payload.text = "@channel #{ branch } build fixed for #{ build_url }. <#{ build_url }|See details...>"
+      payload.text = "@channel #{ branch } build fixed for #{ reponame }. <#{ build_url }|See details...>"
       #payload.text = "@channel #{ branch } build failed! <#{ build_url }|See details...>\nhttp://i.imgur.com/TVVFOhS.gif"
     else
-      console.log('//////// here 4')
       return res.send 200, 'Ignored (only want fixed/failed status)'
 
     slackWebhookEnvVar = (alertNum) ->
       "SLACK_WEBHOOK_URL_#{alertNum}"
-    console.log('//////////// slackWebhookEnvVar ', slackWebhookEnvVar(alertNum))
     request.post(
       requireEnv(slackWebhookEnvVar(alertNum)),
       { form: { payload: JSON.stringify payload } },
@@ -96,7 +94,6 @@ for alertNum in [1..maxVal]
         else
           console.log "Slack responded: #{ body }"
     )
-    console.log('////////// here')
     res.send 200, "OK, sent #{ JSON.stringify payload }"
 
 http.createServer(app).listen port, ->
