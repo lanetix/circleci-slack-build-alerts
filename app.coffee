@@ -49,38 +49,55 @@ app.configure 'development', ->
 app.get '/', (req, res) ->
   res.send 200, 'OK'
 
-app.post '/', (req, res) ->
-  return res.send 400, 'No payload' unless req.body.payload?
-  {build_url, branch, status} = req.body.payload
+maxVal = requireEnv 'NUM_OF_ALERTS'
+for alertNum in [1..maxVal]
+  app.post '/', (req, res) ->
+    return res.send 400, 'No payload' unless req.body.payload?
+    {build_url, branch, status} = req.body.payload
 
-  if branch != requireEnv 'GIT_BRANCH'
-    return res.send 200, 'Ignored (wrong git branch)'
+    console.log('//////// NUM_OF_ALERTS', maxVal)
 
-  payload =
-    channel: requireEnv 'SLACK_CHANNEL'
-    username: 'CircleCI build status'
-  if status == 'failed'
-    payload.icon_emoji = ':red_circle:'
-    payload.text = "@channel #{ branch } build FAILED! <#{ build_url }|See details...>"
-    #payload.text = "@channel #{ branch } build FAILED! <#{ build_url }|See details...>\nhttp://i.imgur.com/TVVFOhS.gif"
-  else if status == 'fixed'
-    payload.icon_emoji = ':white_check_mark:'
-    payload.text = "@channel #{ branch } build fixed. <#{ build_url }|See details...>"
-    #payload.text = "@channel #{ branch } build failed! <#{ build_url }|See details...>\nhttp://i.imgur.com/TVVFOhS.gif"
-  else
-    return res.send 200, 'Ignored (only want fixed/failed status)'
+    branchEnvVar = (alertNum) ->
+      "GIT_BRANCH_#{alertNum}"
+    console.log('////////// branchEnvVar ', branchEnvVar(alertNum))
+    if branch != requireEnv branchEnvVar(alertNum)
+      console.log('//////// here 1')
+      return res.send 200, 'Ignored (wrong git branch)'
 
-  request.post(
-    requireEnv('SLACK_WEBHOOK_URL'),
-    { form: { payload: JSON.stringify payload } },
-    (err, _, body) ->
-      if err
-        console.error "Slack returned an error: #{ err }"
-      else
-        console.log "Slack responded: #{ body }"
-  )
+    slackChannelEnvVar = (alertNum) ->
+      "SLACK_CHANNEL_#{alertNum}"
+    console.log('//////////////// slackChannelEnvVar ', slackChannelEnvVar(alertNum))
+    payload =
+      channel: requireEnv slackChannelEnvVar(alertNum)
+      username: 'CircleCI build status'
+    if status == 'failed'
+      console.log('//////// here 2')
+      payload.icon_emoji = ':red_circle:'
+      payload.text = "@channel #{ branch } build FAILED for #{ build_url }! <#{ build_url }|See details...>"
+      #payload.text = "@channel #{ branch } build FAILED! <#{ build_url }|See details...>\nhttp://i.imgur.com/TVVFOhS.gif"
+    else if status == 'fixed'
+      console.log('//////// here 3')
+      payload.icon_emoji = ':white_check_mark:'
+      payload.text = "@channel #{ branch } build fixed for #{ build_url }. <#{ build_url }|See details...>"
+      #payload.text = "@channel #{ branch } build failed! <#{ build_url }|See details...>\nhttp://i.imgur.com/TVVFOhS.gif"
+    else
+      console.log('//////// here 4')
+      return res.send 200, 'Ignored (only want fixed/failed status)'
 
-  res.send 200, "OK, sent #{ JSON.stringify payload }"
+    slackWebhookEnvVar = (alertNum) ->
+      "SLACK_WEBHOOK_URL_#{alertNum}"
+    console.log('//////////// slackWebhookEnvVar ', slackWebhookEnvVar(alertNum))
+    request.post(
+      requireEnv(slackWebhookEnvVar(alertNum)),
+      { form: { payload: JSON.stringify payload } },
+      (err, _, body) ->
+        if err
+          console.error "Slack returned an error: #{ err }"
+        else
+          console.log "Slack responded: #{ body }"
+    )
+    console.log('////////// here')
+    res.send 200, "OK, sent #{ JSON.stringify payload }"
 
 http.createServer(app).listen port, ->
   console.log "Server listening on http://localhost:#{ port }"
