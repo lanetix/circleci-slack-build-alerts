@@ -17,10 +17,28 @@ This application notifies a specific Slack channel when a specific Git branch fa
 1. Run `npm run dev`
 
 ### Sample `.env` file
+Slackbot can have multiple notifications set up.
 
-    SLACK_WEBHOOK_URL=https://hooks.slack.com/services/XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-    SLACK_CHANNEL=#eng
-    GIT_BRANCH=master
+Each notification requires 4 var settings:
+  1. REPO_#
+  2. GIT_BRANCH_#
+  3. SLACK_CHANNEL_#
+  4. SLACK_WEBHOOK_URL_#
+```
+    REPO_1=ui
+    GIT_BRANCH_1=master
+    SLACK_CHANNEL_1=#eng
+    SLACK_WEBHOOK_URL_1=https://hooks.slack.com/services/XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+    REPO_2=records
+    GIT_BRANCH_2=master
+    SLACK_CHANNEL_2=#squad-records
+    SLACK_WEBHOOK_URL_2=https://hooks.slack.com/services/XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+```
+Then, you need to send an env var for the number of alerts:
+```
+    NUM_OF_ALERTS=2
+```
 
 ### Deploying to Heroku
 
