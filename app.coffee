@@ -57,6 +57,8 @@ app.post '/', (req, res) ->
   for alertNum in [1..maxVal]
     do (alertNum) -> handleCircleciHook(req, alertNum)
 
+  return res.send 200, 'All notification settings were checked'
+
 
 handleCircleciHook = (req, alertNum) ->
   {build_url, reponame, branch, status} = req.body.payload
